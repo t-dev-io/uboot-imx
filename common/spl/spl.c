@@ -36,6 +36,8 @@
 #include <fdt_support.h>
 #include <bootcount.h>
 #include <wdt.h>
+#include <watchdog.h>
+#include <fsl_wdog.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -692,6 +694,29 @@ void board_init_f(ulong dummy)
 }
 #endif
 
+void hw_watchdog_init(void)
+{
+	struct watchdog_regs *wdog = (struct watchdog_regs *)WDOG1_BASE_ADDR;
+	u16 wcr;
+	u16 timeout;
+
+	/*
+	 * The timer watchdog can be set between
+	 * 0.5 and 128 Seconds. If not defined
+	 * in configuration file, sets 128 Seconds
+	 */
+#ifndef CONFIG_WATCHDOG_TIMEOUT_MSECS
+#define CONFIG_WATCHDOG_TIMEOUT_MSECS 128000
+#endif
+
+	timeout = (CONFIG_WATCHDOG_TIMEOUT_MSECS / 500) - 1;
+	wcr = WCR_WDZST | WCR_WDBG | WCR_WDE | WCR_SRS | WCR_WDA | SET_WCR_WT(timeout);
+	writew(wcr, &wdog->wcr);
+	/*watchdog_reset*/
+	writew(0x5555, &wdog->wsr);
+	writew(0xaaaa, &wdog->wsr);
+}
+
 void board_init_r(gd_t *dummy1, ulong dummy2)
 {
 	u32 spl_boot_list[] = {
@@ -761,6 +786,7 @@ void board_init_r(gd_t *dummy1, ulong dummy2)
 #ifdef CONFIG_SYS_SPL_ARGS_ADDR
 	spl_image.arg = (void *)CONFIG_SYS_SPL_ARGS_ADDR;
 #endif
+	hw_watchdog_init();
 	spl_image.boot_device = BOOT_DEVICE_NONE;
 	board_boot_order(spl_boot_list);
 
