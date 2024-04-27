@@ -298,6 +298,27 @@ static int setup_typec(void)
 #define HSIO_GPR_REG_0_USB_CLOCK_MODULE_EN          (0x1U << HSIO_GPR_REG_0_USB_CLOCK_MODULE_EN_SHIFT)
 
 
+#define BM_GPIO_PAD_CTRL (PAD_CTL_PUE | PAD_CTL_DSE1)
+#define USDHC2_CD_GPIO	        IMX_GPIO_NR(2, 12)
+
+enum {
+    BOOT_EMMC = 0x03,
+    BOOT_REMOTE = 0x02,
+    BOOT_SD = 0x01,
+    BOOT_SATA = 0x00,
+};
+
+enum {
+    PARTION1 = 1,
+    PARTION2 = 2,
+    PARTION3 = 3,
+};
+
+static iomux_v3_cfg_t const bm_gpio_pads[] = {
+    MX8MP_PAD_SD2_CD_B__GPIO2_IO12 |  MUX_PAD_CTRL(BM_GPIO_PAD_CTRL),
+};
+
+
 static struct dwc3_device dwc3_device_data = {
 #ifdef CONFIG_SPL_BUILD
 	.maximum_speed = USB_SPEED_HIGH,
@@ -504,11 +525,20 @@ int board_phy_config(struct phy_device *phydev)
 #define DISPMIX				13
 #define MIPI				15
 
+static int gpio_init(void)
+{
+    imx_iomux_v3_setup_multiple_pads(bm_gpio_pads, ARRAY_SIZE(bm_gpio_pads));
+    gpio_request(USDHC2_CD_GPIO, "sd2_cd_b");
+    gpio_direction_input(USDHC2_CD_GPIO);
+    return 0;
+}
+
 int board_init(void)
 {
 	struct arm_smccc_res res;
 
 	ds1337_clk_init();
+	gpio_init();
 #ifdef CONFIG_USB_TCPC
 	setup_typec();
 
@@ -542,8 +572,58 @@ int board_init(void)
 	return 0;
 }
 
+static int get_boot_mode(void)
+{
+    u16 bm;
+#if 0
+    u16 sw1a;
+    u16 sw1b;
+
+    sw1a = gpio_get_value(SD_BOOT_MODE0_GPIO_B);
+    sw1b = gpio_get_value(SD_BOOT_MODE1_GPIO_B);
+    
+    //printf("sw1a = %02x, sw1b=%02x\n", sw1a, sw1b );
+    bm = (sw1b<<1)|sw1a;
+#endif
+    bm = BOOT_EMMC;
+    return bm;    
+}
+
+static void boot_mode_switch(void)
+{
+	u16 bm;
+
+	bm = get_boot_mode();
+	//printf("boot mode=0x%02x\n", bm );
+	switch(bm)
+	{
+		case BOOT_EMMC:
+			printf("BOOT_EMMC:\n");
+			if((gpio_get_value(USDHC2_CD_GPIO) == 0)) //sdcard insert
+			{
+				//printf("sd card insert\n");
+				run_command("mmc dev 1", 0);
+				if(run_command("ext2ls mmc 1:3 /sys/", 0) == 0) //check sdcard'p3,if have fs, go to sdcard recovery
+				{
+					//need to conform
+					printf("load sdcard p3\n");
+					run_command("setenv bootargs  console=ttymxc0,115200 earlycon=ec_imx6q,0x30860000,115200  root=/dev/mmcblk1p3 rootwait rw", 0);
+					run_command("fatload mmc 1:1 ${fdt_addr} ${fdt_file}", 0);
+					run_command("fatload mmc 1:1 ${loadaddr} ${image}", 0);
+					run_command("booti ${loadaddr} - ${fdt_addr}", 0);
+					break;
+				}
+			}
+			break;
+		default:
+			printf("BOOT_UNKNOW:\n");
+			break;
+	}
+}
+
 int board_late_init(void)
 {
+	boot_mode_switch();
 #ifdef CONFIG_ENV_IS_IN_MMC
 	board_late_mmc_env_init();
 #endif
