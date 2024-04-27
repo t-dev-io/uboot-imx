@@ -98,4 +98,6 @@ ifndef CONFIG_SPL_BUILD
 obj-$(CONFIG_USB_TCPC) += tcpc.o
 endif
 
+obj-$(CONFIG_DS1337_CLOCK) += ds1337_clk.o
+
 endif

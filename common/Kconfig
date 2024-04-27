@@ -878,3 +878,7 @@ config FDT_SIMPLEFB
 	  These functions can be used by board to indicate to the OS
 	  the presence of the simple frame buffer with associated reserved
 	  memory
+
+config DS1337_CLOCK
+	bool "Enable the DS1337 clock."
+	default n

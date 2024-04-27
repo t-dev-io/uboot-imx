@@ -29,6 +29,7 @@
 #include <imx_sip.h>
 #include <linux/arm-smccc.h>
 #include <mmc.h>
+#include "../common/ds1337_clk.h"
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -507,6 +508,7 @@ int board_init(void)
 {
 	struct arm_smccc_res res;
 
+	ds1337_clk_init();
 #ifdef CONFIG_USB_TCPC
 	setup_typec();
 
