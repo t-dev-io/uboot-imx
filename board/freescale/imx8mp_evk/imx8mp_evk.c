@@ -623,7 +623,6 @@ static void boot_mode_switch(void)
 
 int board_late_init(void)
 {
-	boot_mode_switch();
 #ifdef CONFIG_ENV_IS_IN_MMC
 	board_late_mmc_env_init();
 #endif
@@ -631,6 +630,9 @@ int board_late_init(void)
 	env_set("board_name", "EVK");
 	env_set("board_rev", "iMX8MP");
 #endif
+
+	if(!is_usb_boot())
+		boot_mode_switch();
 
 	return 0;
 }
