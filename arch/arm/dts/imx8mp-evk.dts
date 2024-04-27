@@ -13,8 +13,8 @@
 	compatible = "fsl,imx8mp-evk", "fsl,imx8mp";
 
 	chosen {
-		bootargs = "console=ttymxc1,115200";
-		stdout-path = &uart2;
+		bootargs = "console=ttymxc0,115200 earlycon=ec_imx6q,0x30860000,115200";
+		stdout-path = &uart1;
 	};
 
 	gpio-leds {
@@ -403,6 +403,13 @@
 	status = "okay";
 };
 
+&uart1 {
+	/* console */
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_uart1>;
+	status = "okay";
+};
+
 &uart2 {
 	/* console */
 	pinctrl-names = "default";
@@ -641,6 +648,13 @@
 	pinctrl_reg_usdhc2_vmmc: regusdhc2vmmc {
 		fsl,pins = <
 			MX8MP_IOMUXC_SD2_RESET_B__GPIO2_IO19	0x41
+		>;
+	};
+
+	pinctrl_uart1: uart1grp {
+		fsl,pins = <
+			MX8MP_IOMUXC_UART1_RXD__UART1_DCE_RX	0x49
+			MX8MP_IOMUXC_UART1_TXD__UART1_DCE_TX	0x49
 		>;
 	};
 
