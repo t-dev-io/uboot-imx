@@ -419,13 +419,57 @@ int board_typec_get_mode(int index)
 #endif
 #endif
 
+#define FEC_RST_PAD IMX_GPIO_NR(3, 0)
+static iomux_v3_cfg_t const fec1_rst_pads[] = {
+	MX8MP_PAD_SAI1_RXD0__GPIO4_IO02 | MUX_PAD_CTRL(NO_PAD_CTRL),
+	MX8MP_PAD_NAND_ALE__GPIO3_IO00 | MUX_PAD_CTRL(NO_PAD_CTRL),
+};
+
+static void setup_iomux_fec(void)
+{
+	imx_iomux_v3_setup_multiple_pads(fec1_rst_pads,
+					 ARRAY_SIZE(fec1_rst_pads));
+
+	gpio_request(FEC_RST_PAD, "fec1_rst");
+	gpio_direction_output(FEC_RST_PAD, 0);
+	mdelay(15);
+	gpio_direction_output(FEC_RST_PAD, 1);
+	mdelay(100);
+}
+
 static void setup_fec(void)
 {
 	struct iomuxc_gpr_base_regs *gpr =
 		(struct iomuxc_gpr_base_regs *)IOMUXC_GPR_BASE_ADDR;
 
+	setup_iomux_fec();
+
 	/* Enable RGMII TX clk output */
-	setbits_le32(&gpr->gpr[1], BIT(22));
+	clrsetbits_le32(&gpr->gpr[1],
+			IOMUXC_GPR_GPR1_GPR_ENET1_TX_CLK_SEL_SHIFT,0);
+
+	setbits_le32(&gpr->gpr[1], BIT(13) | BIT(22));
+	return set_clk_enet(ENET_125MHZ);
+}
+
+#define EQOS_RST_PAD IMX_GPIO_NR(3, 1)
+static iomux_v3_cfg_t const eqos_rst_pads[] = {
+	MX8MP_PAD_SAI2_RXC__GPIO4_IO22 | MUX_PAD_CTRL(NO_PAD_CTRL),
+	MX8MP_PAD_NAND_CE0_B__GPIO3_IO01 | MUX_PAD_CTRL(NO_PAD_CTRL),
+};
+
+static void setup_iomux_eqos(void)
+{
+	imx_iomux_v3_setup_multiple_pads(eqos_rst_pads,
+					 ARRAY_SIZE(eqos_rst_pads));
+
+	setup_iomux_eqos();
+
+	gpio_request(EQOS_RST_PAD, "eqos_rst");
+	gpio_direction_output(EQOS_RST_PAD, 0);
+	mdelay(15);
+	gpio_direction_output(EQOS_RST_PAD, 1);
+	mdelay(100);
 }
 
 static int setup_eqos(void)
@@ -444,6 +488,12 @@ static int setup_eqos(void)
 #if CONFIG_IS_ENABLED(NET)
 int board_phy_config(struct phy_device *phydev)
 {
+	/* enable rgmii rxc skew and phy mode select to RGMII copper */
+	phy_write(phydev, MDIO_DEVAD_NONE, 0x1d, 0x1f);
+	phy_write(phydev, MDIO_DEVAD_NONE, 0x1e, 0x8);
+
+	phy_write(phydev, MDIO_DEVAD_NONE, 0x1d, 0x05);
+	phy_write(phydev, MDIO_DEVAD_NONE, 0x1e, 0x100);
 	if (phydev->drv->config)
 		phydev->drv->config(phydev);
 	return 0;
