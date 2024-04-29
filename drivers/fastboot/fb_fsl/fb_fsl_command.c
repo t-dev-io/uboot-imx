@@ -19,6 +19,7 @@
 #include <asm/arch/sys_proto.h>
 #include <asm/setup.h>
 #include <env.h>
+#include <fsl_wdog.h>
 #ifdef CONFIG_ANDROID_RECOVERY
 #include <recovery.h>
 #endif
@@ -321,6 +322,18 @@ void fastboot_data_download(const void *fastboot_data,
 	*response = '\0';
 }
 
+#if CONFIG_IMX_WATCHDOG_ENABLE
+void hw_watchdog_feed(void)
+{
+	struct watchdog_regs *wdog = (struct watchdog_regs *)WDOG1_BASE_ADDR;
+	/*watchdog_reset*/
+	writew(0x5555, &wdog->wsr);
+	writew(0xaaaa, &wdog->wsr);
+}
+#endif
+
+u32 totalsize = 0;
+
 /**
  * fastboot_data_complete() - Mark current transfer complete
  *
@@ -330,9 +343,14 @@ void fastboot_data_download(const void *fastboot_data,
  */
 void fastboot_data_complete(char *response)
 {
+#if CONFIG_IMX_WATCHDOG_ENABLE
+	hw_watchdog_feed();
+#endif
+
 	/* Download complete. Respond with "OKAY" */
 	fastboot_okay(NULL, response);
-	printf("\ndownloading of %d bytes finished\n", fastboot_bytes_received);
+	totalsize += fastboot_bytes_received;
+	printf("\ndownloading of %d bytes finished total:%d\n", fastboot_bytes_received, totalsize);
 	env_set_hex("filesize", fastboot_bytes_received);
 	env_set_hex("fastboot_bytes", fastboot_bytes_received);
 	fastboot_bytes_expected = 0;
