@@ -694,6 +694,7 @@ void board_init_f(ulong dummy)
 }
 #endif
 
+#if CONFIG_IMX_WATCHDOG_ENABLE
 void hw_watchdog_init(void)
 {
 	struct watchdog_regs *wdog = (struct watchdog_regs *)WDOG1_BASE_ADDR;
@@ -716,6 +717,7 @@ void hw_watchdog_init(void)
 	writew(0x5555, &wdog->wsr);
 	writew(0xaaaa, &wdog->wsr);
 }
+#endif
 
 void board_init_r(gd_t *dummy1, ulong dummy2)
 {
@@ -786,7 +788,9 @@ void board_init_r(gd_t *dummy1, ulong dummy2)
 #ifdef CONFIG_SYS_SPL_ARGS_ADDR
 	spl_image.arg = (void *)CONFIG_SYS_SPL_ARGS_ADDR;
 #endif
+#if CONFIG_IMX_WATCHDOG_ENABLE
 	hw_watchdog_init();
+#endif
 	spl_image.boot_device = BOOT_DEVICE_NONE;
 	board_boot_order(spl_boot_list);
 
