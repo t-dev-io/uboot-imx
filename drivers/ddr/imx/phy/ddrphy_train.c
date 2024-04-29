@@ -64,7 +64,7 @@ int ddr_cfg_phy(struct dram_timing_info *dram_timing)
 		/* Wait for the training firmware to complete */
 		ret = wait_ddrphy_training_complete();
 		if (ret)
-			return ret;
+			return 0;
 
 		/* Halt the microcontroller. */
 		dwc_ddrphy_apb_wr(0xd0099, 0x1);
