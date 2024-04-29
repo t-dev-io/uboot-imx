@@ -750,6 +750,8 @@ static struct phy_device *create_phy_by_mask(struct mii_dev *bus,
 {
 	u32 phy_id = 0xffffffff;
 	bool is_c45;
+	int max_addr=31;
+	int i = 0;
 
 	while (phy_mask) {
 		int addr = ffs(phy_mask) - 1;
@@ -772,6 +774,14 @@ static struct phy_device *create_phy_by_mask(struct mii_dev *bus,
 		}
 next:
 		phy_mask &= ~(1 << addr);
+	}
+	for(i = 0 ; i< max_addr; i++){
+		int addr = i;
+		int r = get_phy_id(bus, addr, devad, &phy_id);
+		/* If the PHY ID is mostly f's, we didn't find anything */
+		if (r == 0 && (phy_id & 0x1fffffff) != 0x1fffffff)
+			is_c45 = (devad == MDIO_DEVAD_NONE) ? false : true;
+		return phy_device_create(bus, addr, phy_id, is_c45,interface);
 	}
 	return NULL;
 }
