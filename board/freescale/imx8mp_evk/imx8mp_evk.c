@@ -607,7 +607,7 @@ static void boot_mode_switch(void)
 				{
 					//need to conform
 					printf("load sdcard p3\n");
-					run_command("setenv bootargs  console=ttymxc1,115200 earlycon=ec_imx6q,0x30860000,115200  root=/dev/mmcblk1p3 rootwait rw", 0);
+					run_command("setenv bootargs  console=ttymxc1,115200 root=/dev/mmcblk1p3 rootwait rw", 0);
 					run_command("fatload mmc 1:1 ${fdt_addr} ${fdt_file}", 0);
 					run_command("fatload mmc 1:1 ${loadaddr} ${image}", 0);
 					run_command("booti ${loadaddr} - ${fdt_addr}", 0);
